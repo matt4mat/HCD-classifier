@@ -12,9 +12,10 @@ from core.data_table import (
     LLM_HCD_Label,
     List_Student_HCD_Label,
     List_Output_Label,
+    List_InferredSubspaceLabel,
 )
 from core.model_config import FINAL_EVAL_MODEL
-from core.prompt import FINAL_EVAL_SYS_PROMPT
+from core.prompt import FINAL_EVAL_SYS_PROMPT, MISSING_SUBSPACE_EVAL_SYS_PROMPT
 from core.utils import KNOWN_SPACES, KNOWN_SUBSPACES, normalize_list
 
 
@@ -30,6 +31,31 @@ class FinalProcessing:
         """
         self._model = FINAL_EVAL_MODEL
         self.bound_model = self._model.with_structured_output(Output_Label)
+        self.inference_model = self._model.with_structured_output(
+            List_InferredSubspaceLabel
+        )
+
+    async def infer_missing_subspaces(
+        self, activities: list[str], subspaces: list[str]
+    ) -> List_InferredSubspaceLabel:
+        """Assess report evidence for subspaces without student evaluations."""
+        response = await self.inference_model.ainvoke(
+            [
+                {
+                    "role": "system",
+                    "content": MISSING_SUBSPACE_EVAL_SYS_PROMPT,
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Requested subspaces: {subspaces}\n\n"
+                        "Progress report activities:\n"
+                        + "\n".join(f"- {activity}" for activity in activities)
+                    ),
+                },
+            ]
+        )
+        return response
 
     @staticmethod
     def _build_eval_prompt(student_entry, llm_entry) -> list[dict[str, str]]:

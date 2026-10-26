@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # Global data table structure for HCD classification
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -96,3 +98,37 @@ class List_Output_Label(BaseModel):
     labels: list[Output_Label] = Field(
         ..., description="List of extracted output label data"
     )
+
+
+class InferredSubspaceLabel(BaseModel):
+    """LLM evidence assessment for a subspace with no student evaluation."""
+
+    subspace: Literal[
+        "explore",
+        "observe",
+        "empathize",
+        "reflect",
+        "debrief",
+        "organize",
+        "interpret",
+        "define",
+        "brainstorm",
+        "propose",
+        "plan",
+        "narrow concepts",
+        "create",
+        "engage",
+        "evaluate",
+        "iterate",
+        "support",
+        "sustain",
+        "evolve",
+        "execute",
+    ]
+    result: Literal[0, 1]
+
+
+class List_InferredSubspaceLabel(BaseModel):
+    """LLM assessments for requested subspaces not labeled by the student."""
+
+    labels: list[InferredSubspaceLabel]

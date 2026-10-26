@@ -56,31 +56,67 @@ Upload a PDF file to extract and classify HCD activities. This is the main core 
       "tables": [
         {
           "activity": "Interviewed users about their needs",
-          "HCD_Spaces": ["observation"],
-          "HCD_Subspaces": ["user research"]
+          "HCD_Spaces": ["understand"],
+          "HCD_Subspaces": ["empathize"]
         }
       ]
     },
-    "llm_labels": [
-      {
-        "activity": "Interviewed users about their needs",
-        "HCD_Spaces": ["observation"],
-        "HCD_Subspaces": ["user research"]
-      }
-    ],
     "final_labels": {
       "labels": [
         {
           "activity": "Interviewed users about their needs",
-          "student_labeled_spaces": ["observation"],
-          "student_labeled_subspaces": ["user research"],
-          "result": [1],
-          "Reason": "Correctly identified as user research."
+          "student_labeled_spaces": ["understand"],
+          "student_labeled_subspaces": ["empathize"],
+          "result": [1]
         }
       ]
+    },
+    "space_summary": {
+      "understand": {
+        "score": 1,
+        "passed": ["empathize"],
+        "not_enough_evidence": ["explore", "observe", "reflect"],
+        "incorrect": []
+      },
+      "synthesize": {
+        "score": 0,
+        "passed": [],
+        "not_enough_evidence": ["debrief", "organize", "interpret", "define"],
+        "incorrect": []
+      },
+      "ideate": {
+        "score": 0,
+        "passed": [],
+        "not_enough_evidence": ["brainstorm", "propose", "plan", "narrow concepts"],
+        "incorrect": []
+      },
+      "prototype": {
+        "score": 0,
+        "passed": [],
+        "not_enough_evidence": ["create", "engage", "evaluate", "iterate"],
+        "incorrect": []
+      },
+      "implement": {
+        "score": 0,
+        "passed": [],
+        "not_enough_evidence": ["support", "sustain", "evolve", "execute"],
+        "incorrect": []
+      }
     }
   }
   ```
+
+The summary includes all 20 rubric subspaces. A subspace with multiple
+student-label evaluations is marked `passed` if any evaluation is `1`;
+otherwise, it is `not_enough_evidence` if any evaluation is `0`; otherwise it
+is `incorrect`. Subspaces without a student evaluation are assessed against
+the report by the LLM: `1` means clear evidence was found, and `0` means the
+evidence is absent or unclear. The output does not identify inferred
+subspaces or include inference feedback. Each space's `score` is `1` if any
+of its four subspaces passes, `-1` if all four are incorrect, and `0`
+otherwise. The `final_labels` response omits the evaluator's `Reason` text.
+The LLM classification is still used internally to produce `final_labels`
+and the summary, but its intermediate labels are not included in the response.
 
 ### 4. Fetch Unlabeled Activity
 Retrieves a single unlabeled activity from the database for manual labeling.

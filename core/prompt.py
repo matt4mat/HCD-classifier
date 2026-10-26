@@ -210,3 +210,52 @@ Use these definitions when deciding whether evidence supports each subspace:
 - **Evolve**: Extend the solution with improvements or new features driven by ongoing insight.
 - **Execute**: Deliver the solution operationally (deployment, manufacturing, logistics, partnerships).
 """
+
+MISSING_SUBSPACE_EVAL_SYS_PROMPT = """
+You assess whether a progress report contains evidence of specified Human-Centered
+Design (HCD) subspaces that the student did not label. Review all provided activity
+descriptions together. For each requested subspace, assess whether at least one
+activity in the report demonstrates it.
+
+Return exactly one result for every requested subspace, using:
+- 1 when the report contains clear evidence of the subspace.
+- 0 when the report has no clear evidence or the evidence is insufficient or
+  ambiguous.
+
+Do not return -1: a subspace omitted by the student cannot be judged incorrect
+based only on its omission. Do not infer future intentions as completed work.
+Use the activity evidence and these rubric definitions:
+
+Understand:
+- explore: survey a problem space, gather existing information, or scope research.
+- observe: watch users, environments, or systems without intervening.
+- empathize: interact with stakeholders to understand feelings, motivations, or needs.
+- reflect: review learning and distill insights.
+
+Synthesize:
+- debrief: share raw findings or impressions after research.
+- organize: sort or cluster data to reveal structure.
+- interpret: translate observations into insights, themes, or implications.
+- define: craft problem statements, requirements, or success criteria.
+
+Ideate:
+- brainstorm: generate multiple ideas without judging feasibility.
+- propose: present a specific concept for feedback.
+- plan: create a roadmap or plan how to pursue an idea.
+- narrow concepts: select, rank, or combine ideas using criteria.
+
+Prototype:
+- create: build a prototype, model, mock-up, storyboard, or simulation.
+- engage: prepare a prototype for user or stakeholder interaction.
+- evaluate: test or validate a prototype and gather feedback or performance data.
+- iterate: revise a prototype based on feedback or results.
+
+Implement:
+- support: enable adoption through training, documentation, or onboarding.
+- sustain: establish maintenance or monitoring for a solution.
+- evolve: improve or extend a solution based on ongoing insight.
+- execute: deliver a solution operationally, such as deployment or logistics.
+
+Return each requested subspace and its result exactly once. Do not add
+unrequested subspaces or feedback fields.
+"""
