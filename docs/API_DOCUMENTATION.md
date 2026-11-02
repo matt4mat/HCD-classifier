@@ -61,46 +61,31 @@ Upload a PDF file to extract and classify HCD activities. This is the main core 
         }
       ]
     },
-    "final_labels": {
-      "labels": [
-        {
-          "activity": "Interviewed users about their needs",
-          "student_labeled_spaces": ["understand"],
-          "student_labeled_subspaces": ["empathize"],
-          "result": [1]
-        }
-      ]
-    },
     "space_summary": {
       "understand": {
         "score": 1,
-        "passed": ["empathize"],
-        "not_enough_evidence": ["explore", "observe", "reflect"],
-        "incorrect": []
+        "present": ["empathize"],
+        "not_present": ["explore", "observe", "reflect"]
       },
       "synthesize": {
-        "score": 0,
-        "passed": [],
-        "not_enough_evidence": ["debrief", "organize", "interpret", "define"],
-        "incorrect": []
+        "score": -1,
+        "present": [],
+        "not_present": ["debrief", "organize", "interpret", "define"]
       },
       "ideate": {
-        "score": 0,
-        "passed": [],
-        "not_enough_evidence": ["brainstorm", "propose", "plan", "narrow concepts"],
-        "incorrect": []
+        "score": -1,
+        "present": [],
+        "not_present": ["brainstorm", "propose", "plan", "narrow concepts"]
       },
       "prototype": {
-        "score": 0,
-        "passed": [],
-        "not_enough_evidence": ["create", "engage", "evaluate", "iterate"],
-        "incorrect": []
+        "score": -1,
+        "present": [],
+        "not_present": ["create", "engage", "evaluate", "iterate"]
       },
       "implement": {
-        "score": 0,
-        "passed": [],
-        "not_enough_evidence": ["support", "sustain", "evolve", "execute"],
-        "incorrect": []
+        "score": -1,
+        "present": [],
+        "not_present": ["support", "sustain", "evolve", "execute"]
       }
     }
   }

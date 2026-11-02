@@ -11,12 +11,12 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from core.data_table import (
-    List_Output_Label,
+    List_InferredSubspaceLabel,
     List_Student_HCD_Label,
 )
-from core.postprocessing import FinalProcessing
 from core.preprocessing import PreProcessor
-from core.processing import Processing
+from core.postprocessing import FinalProcessing
+# from core.processing import Processing
 from database.db import (
     fetch_unlabeld_activity,
     label_activity,
@@ -29,10 +29,9 @@ load_dotenv()
 
 
 class SpaceSummary(BaseModel):
-    score: Literal[-1, 0, 1]
-    passed: list[str]
-    not_enough_evidence: list[str]
-    incorrect: list[str]
+    score: Literal[-1, 1]
+    present: list[str]
+    not_present: list[str]
 
 
 class SpaceSummaryResponse(BaseModel):
@@ -43,20 +42,19 @@ class SpaceSummaryResponse(BaseModel):
     implement: SpaceSummary
 
 
-class FinalLabelResponse(BaseModel):
-    activity: str
-    student_labeled_spaces: list[str]
-    student_labeled_subspaces: list[str]
-    result: list[int]
+# class FinalLabelResponse(BaseModel):
+#     activity: str
+#     student_labeled_spaces: list[str]
+#     student_labeled_subspaces: list[str]
+#     result: list[int]
 
 
-class FinalLabelsResponse(BaseModel):
-    labels: list[FinalLabelResponse]
+# class FinalLabelsResponse(BaseModel):
+#     labels: list[FinalLabelResponse]
 
 
 class ClassificationResponse(BaseModel):
     student_labels: List_Student_HCD_Label
-    final_labels: FinalLabelsResponse
     space_summary: SpaceSummaryResponse
 
 
@@ -114,7 +112,7 @@ class LabelStatsResponse(BaseModel):
 app = FastAPI(title="SIIP HCD Classifier API", version="0.1.0")
 
 preprocessor = PreProcessor()
-processor = Processing()
+# processor = Processing()
 final_processor = FinalProcessing()
 
 
@@ -149,87 +147,38 @@ class _SpaceSummaryAccumulator(TypedDict):
 
 
 def summarize_space_results(
-    labels: List_Output_Label,
-    inferred_labels: dict[str, int],
+    assessments: List_InferredSubspaceLabel,
 ) -> SpaceSummaryResponse:
-    scores_by_subspace: dict[str, list[int]] = {
-        subspace: [] for subspace in SUBSPACE_TO_SPACE
+    assessment_list = assessments.labels
+    scores = {
+        assessment.subspace: assessment.result
+        for assessment in assessment_list
     }
 
-    for label in labels.labels:
-        if len(label.student_labeled_subspaces) != len(label.result):
-            raise ValueError(
-                "Final evaluation must return one result for each student subspace."
-            )
+    if len(assessment_list) != 20 or set(scores) != set(SUBSPACE_TO_SPACE):
+        raise ValueError("LLM must assess each of the 20 subspaces exactly once.")
 
-        for subspace, result in zip(
-            label.student_labeled_subspaces, label.result
-        ):
-            space = SUBSPACE_TO_SPACE.get(subspace.strip().lower())
-            if space is None:
-                raise ValueError(
-                    f"Unknown HCD subspace in final evaluation: {subspace}"
-                )
-            if result not in (-1, 0, 1):
-                raise ValueError(f"Unexpected evaluation result: {result}")
+    if any(result not in (-1, 1) for result in scores.values()):
+        raise ValueError("Subspace results must be -1 or 1.")
 
-            scores_by_subspace[subspace.strip().lower()].append(result)
-
-    if set(inferred_labels) != {
-        subspace for subspace, results in scores_by_subspace.items() if not results
-    }:
-        raise ValueError(
-            "LLM inference must provide exactly the subspaces without student evaluations."
-        )
-
-    scores_by_space: dict[str, list[int]] = {
-        space: []
+    by_space = {
+        space: {"present": [], "not_present": []}
         for space in ("understand", "synthesize", "ideate", "prototype", "implement")
-    }
-    summary_by_space: dict[str, _SpaceSummaryAccumulator] = {
-        space: {
-            "passed": [],
-            "not_enough_evidence": [],
-            "incorrect": [],
-        }
-        for space in scores_by_space
     }
 
     for subspace, space in SUBSPACE_TO_SPACE.items():
-        results = scores_by_subspace[subspace]
-        if subspace in inferred_labels:
-            result = inferred_labels[subspace]
-            if result not in (0, 1):
-                raise ValueError(f"Unexpected inferred result for {subspace}: {result}")
-        else:
-            if 1 in results:
-                result = 1
-            elif 0 in results:
-                result = 0
-            else:
-                result = -1
-
-        scores_by_space[space].append(result)
-        category = {
-            1: "passed",
-            0: "not_enough_evidence",
-            -1: "incorrect",
-        }[result]
-        summary_by_space[space][category].append(subspace)
+        result = scores[subspace]
+        category = "present" if result == 1 else "not_present"
+        by_space[space][category].append(subspace)
 
     return SpaceSummaryResponse(
         **{
             space: SpaceSummary(
-                score=(
-                    1
-                    if 1 in scores
-                    else -1
-                    if all(score == -1 for score in scores)
-                    else 0
-                ),
-                **summary_by_space[space],
+                score=1 if values["present"] else -1,
+                present=values["present"],
+                not_present=values["not_present"],
             )
-            for space, scores in scores_by_space.items()
+            for space, values in by_space.items()
         }
     )
 
@@ -297,41 +246,23 @@ async def classify_pdf(file: UploadFile = File(...)) -> ClassificationResponse:
         student_labels = await asyncio.to_thread(
             preprocessor.invoke, temp_path.as_posix()
         )
-        llm_labels = await processor.aclassify_table(student_labels)
-        final_labels = await final_processor.afinal_eval(student_labels, llm_labels)
-        evaluated_subspaces = {
-            subspace.strip().lower()
-            for label in final_labels.labels
-            for subspace in label.student_labeled_subspaces
-        }
-        missing_subspaces = [
-            subspace
-            for subspace in SUBSPACE_TO_SPACE
-            if subspace not in evaluated_subspaces
-        ]
-        inferred_response = (
-            await final_processor.infer_missing_subspaces(
-                [entry.activity for entry in student_labels.tables],
-                missing_subspaces,
-            )
-            if missing_subspaces
-            else None
+
+        table_text = "\n".join(
+            entry.activity for entry in student_labels.tables
         )
-        inferred_labels = {
-            label.subspace: label.result
-            for label in (inferred_response.labels if inferred_response else [])
-        }
-        if len(inferred_labels) != len(missing_subspaces) or set(inferred_labels) != set(
-            missing_subspaces
-        ):
-            raise ValueError(
-                "LLM inference must return each unevaluated subspace exactly once."
-            )
-        space_results = summarize_space_results(final_labels, inferred_labels)
+        assessments = await final_processor.assess_report_subspaces(
+            table_text,
+            list(SUBSPACE_TO_SPACE),
+        )
+        space_summary = summarize_space_results(assessments)
+
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except openai.APIError as exc:
-        raise HTTPException(status_code=502, detail=f"OpenAI API error: {exc}") from exc
+        raise HTTPException(
+            status_code=502,
+            detail=f"OpenAI API error: {exc}",
+        ) from exc
     finally:
         if temp_path is not None:
             try:
@@ -341,18 +272,7 @@ async def classify_pdf(file: UploadFile = File(...)) -> ClassificationResponse:
 
     return ClassificationResponse(
         student_labels=student_labels,
-        final_labels=FinalLabelsResponse(
-            labels=[
-                FinalLabelResponse(
-                    activity=label.activity,
-                    student_labeled_spaces=label.student_labeled_spaces,
-                    student_labeled_subspaces=label.student_labeled_subspaces,
-                    result=label.result,
-                )
-                for label in final_labels.labels
-            ]
-        ),
-        space_summary=space_results,
+        space_summary=space_summary,
     )
 
 

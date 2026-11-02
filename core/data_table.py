@@ -125,7 +125,7 @@ class InferredSubspaceLabel(BaseModel):
         "evolve",
         "execute",
     ]
-    result: Literal[0, 1]
+    result: Literal[-1, 1]
 
 
 class List_InferredSubspaceLabel(BaseModel):

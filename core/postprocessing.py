@@ -15,7 +15,7 @@ from core.data_table import (
     List_InferredSubspaceLabel,
 )
 from core.model_config import FINAL_EVAL_MODEL
-from core.prompt import FINAL_EVAL_SYS_PROMPT, MISSING_SUBSPACE_EVAL_SYS_PROMPT
+from core.prompt import FINAL_EVAL_SYS_PROMPT, REPORT_SUBSPACE_EVAL_PROMPT
 from core.utils import KNOWN_SPACES, KNOWN_SUBSPACES, normalize_list
 
 
@@ -35,27 +35,21 @@ class FinalProcessing:
             List_InferredSubspaceLabel
         )
 
-    async def infer_missing_subspaces(
-        self, activities: list[str], subspaces: list[str]
+    async def assess_report_subspaces(
+        self, report_text: str, subspaces: list[str]
     ) -> List_InferredSubspaceLabel:
-        """Assess report evidence for subspaces without student evaluations."""
-        response = await self.inference_model.ainvoke(
+        return await self.inference_model.ainvoke(
             [
-                {
-                    "role": "system",
-                    "content": MISSING_SUBSPACE_EVAL_SYS_PROMPT,
-                },
+                {"role": "system", "content": REPORT_SUBSPACE_EVAL_PROMPT},
                 {
                     "role": "user",
                     "content": (
-                        f"Requested subspaces: {subspaces}\n\n"
-                        "Progress report activities:\n"
-                        + "\n".join(f"- {activity}" for activity in activities)
+                        f"Assess every requested subspace:\n{subspaces}\n\n"
+                        f"Report evidence:\n{report_text}"
                     ),
                 },
             ]
         )
-        return response
 
     @staticmethod
     def _build_eval_prompt(student_entry, llm_entry) -> list[dict[str, str]]:
