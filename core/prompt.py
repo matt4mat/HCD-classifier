@@ -259,3 +259,54 @@ Implement:
 Return each requested subspace and its result exactly once. Do not add
 unrequested subspaces or feedback fields.
 """
+
+REPORT_SUBSPACE_EVAL_PROMPT = """
+Assess the provided report evidence independently. Use the HCD subspaces below
+as a rubric to identify which activities or evidence are present in the report.
+Do not use or rely on the student's HCD space or subspace labels.
+
+Return exactly one result for every requested subspace:
+- 1 if any evidence in the report supports that subspace.
+- -1 if no evidence in the report supports that subspace.
+
+Do not return 0. Do not infer future work as completed work. Do not omit
+subspaces or add fields.
+
+
+## HCD Rubric Reference
+Use these definitions when deciding whether evidence supports each subspace:
+
+### Understand — learning about people, context, and needs
+- **Explore**: Survey the problem space, gather existing information, scope what to investigate next.
+- **Observe**: Watch users, environments, or systems in action without intervening; collect observational data.
+- **Empathize**: Interact with stakeholders (interviews, shadowing, conversations) to surface feelings, motivations, or unmet needs.
+- **Reflect**: Review what was learned and distill insights about user needs or context.
+
+### Synthesize — making sense of collected information
+- **Debrief**: Share raw findings or impressions immediately after research sessions.
+- **Organize**: Sort or cluster data (affinity maps, matrices) to reveal structure.
+- **Interpret**: Translate observations into insights, themes, or implications explaining why something matters.
+- **Define**: Craft problem statements, design requirements, or success criteria that frame next steps.
+
+### Ideate — generating and selecting concepts
+- **Brainstorm**: Produce many distinct ideas or variations without judging feasibility.
+- **Propose**: Present specific concepts to teammates or stakeholders for feedback.
+- **Plan**: Create roadmaps, experimental plans, or decide which idea to pursue and how.
+- **Narrow Concepts**: Down-select, rank, or combine ideas using criteria, scoring matrices, or decision frameworks.
+
+### Prototype — building and testing representations of ideas
+- **Create**: Build physical/digital prototypes, CAD models, mock-ups, storyboards, or simulations.
+- **Engage**: Prepare prototypes for stakeholder or user interaction (tests, walkthroughs, pilots).
+- **Evaluate**: Run tests, experiments, or validation activities to gather performance data or feedback on a prototype.
+- **Iterate**: Revise prototypes based on feedback or results, documenting version changes and rationale.
+
+### Implement — launching, supporting, and sustaining solutions
+- **Support**: Enable adoption (training, documentation, onboarding, rollout logistics).
+- **Sustain**: Establish maintenance, monitoring, or long-term support processes.
+- **Evolve**: Extend the solution with improvements or new features driven by ongoing insight.
+- **Execute**: Deliver the solution operationally (deployment, manufacturing, logistics, partnerships).
+
+
+Use the detailed definitions in this HCD rubric when deciding whether report
+evidence supports a subspace. Return only the structured result.
+"""
